@@ -92,10 +92,10 @@ To stay up to date with your installation it's recommended to subscribe the [rel
 
 [gitter-image]: https://img.shields.io/badge/gitter-hackmdio/codimd-blue.svg	
 [gitter-url]: https://gitter.im/hackmdio/hackmd
-[travis-image]: https://travis-ci.com/hackmdio/codimd.svg?branch=master
-[travis-url]: https://travis-ci.com/hackmdio/codimd
-[github-version-badge]: https://img.shields.io/github/release/hackmdio/codimd.svg
-[github-release-page]: https://github.com/hackmdio/codimd/releases
-[github-release-feed]: https://github.com/hackmdio/codimd/releases.atom
+[travis-image]: https://travis-ci.com/LanceaKing/codimd.svg?branch=master
+[travis-url]: https://travis-ci.com/LanceaKing/codimd
+[github-version-badge]: https://img.shields.io/github/v/release/LanceaKing/codimd?include_prereleases
+[github-release-page]: https://github.com/LanceaKing/codimd/releases
+[github-release-feed]: https://github.com/LanceaKing/codimd/releases.atom
 [poeditor-image]: https://img.shields.io/badge/POEditor-translate-blue.svg
 [poeditor-url]: https://poeditor.com/join/project/q0nuPWyztp

@@ -1,6 +1,93 @@
 Release Notes
 ===
 
+<i class="fa fa-tag"></i> 2.4.0 Papilio maraho <i class="fa fa-clock-o"></i> 2021-05-11
+---
+
+<div style="text-align: center; margin-bottom: 1em;">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/Papilio_maraho_male_ventral_view_20160423.jpg/569px-Papilio_maraho_male_ventral_view_20160423.jpg" width="600">
+  <small style="display: block;">Papilio maraho</small>
+</div>
+
+> Papilio maraho is a species of butterfly in the family Papilionidae. It is endemic to Taiwan.
+> \- Wikipedia [Papilio maraho](https://en.wikipedia.org/wiki/Papilio_maraho)
+
+[Check out the complete release note][v2_4_0]. Thank you CodiMD community and all our contributors. ❤️
+
+[v2_4_0]: https://hackmd.io/@codimd/release-notes/%2F%40codimd%2Fv2_4_0
+
+## Enhancements
+
+- Support autofix linter errors
+- Support anonymous updates via API
+- Support mediawiki export format in pandoc export
+- Add some help strings to Prometheus metrics
+- Allow more syntax highlight modes in editor
+- Support TOC level customization
+- Follow Google guidelines to use Google OAuth
+
+## Fixes
+
+- Vimeo won't show up due to the jsonp callback data unable be parsed with jQuery
+- Fix slide mode stored XSS
+- Enforce PG ssl require mode on heroku
+- Webpack exclude path should support windows path
+- Free url can read any md in file system
+- Use encoded noteId when calling updateHistory
+
+## Docs
+
+- Add matrix badge and links to README [#1629](https://github.com/hackmdio/codimd/pull/1629) [@a-andreyev](https://github.com/a-andreyev)
+
+<i class="fa fa-tag"></i> 2.3.1 Isoetes taiwanensis <i class="fa fa-clock-o"></i> 2021-01-04
+---
+
+### Fixes
+
+* Upgrade mermaid to 8.6.4 to make the previous fix works
+
+<i class="fa fa-tag"></i> 2.3.0 Isoetes taiwanensis <i class="fa fa-clock-o"></i> 2020-12-30
+---
+
+<div style="text-align: center; margin-bottom: 1em;">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/4/4a/%E5%8F%B0%E7%81%A3%E6%B0%B4%E9%9F%AD.JPG" width="600">
+  <small style="display: block;">Isoetes taiwanensis</small>
+</div>
+
+> Isoetes taiwanensis is a species of plant in the family Isoetaceae. It is endemic to Taiwan, and the only species of quillwort there. As other quillworts, it is relatively small, with erect leaves 7–24 cm (2.8–9.4 in) long. It grows submersed in shallow ponds for most of the year. IUCN considers it critically endangered because of habitat loss.
+> \- Wikipedia [Isoetes taiwanensis](https://en.wikipedia.org/wiki/Isoetes_taiwanensis)
+
+In this release, we focus on polishing existing features, fixing bugs and patching security issues.
+
+We continue to expand the APIs. CodiMD now supports ["Update note's content" and "delete note"](https://github.com/hackmdio/codimd/pull/1559) RESTful APIs. Thanks for the great works from [@JamesCamel](https://github.com/JamesCamel) :heart_eyes:
+
+We also fix several XSS security issues, including [mermaid](https://github.com/hackmdio/codimd/pull/1633), [vega](https://github.com/hackmdio/codimd/pull/1637) and [image lightbox](https://github.com/hackmdio/codimd/pull/1632). We appreciate the security report from [@msrkp](https://github.com/@msrkp), [@Alemmi](https://github.com/Alemmi), and [@nename0
+](https://github.com/nename0).
+
+This is the last release before the end of this year.
+Merry Christmas to everyone! Let's look forward and see you in the next year. :tada:
+
+[Check out the complete release note][v2_3_0]. Thank you CodiMD community and all our contributors. ❤️
+
+[v2_3_0]: https://hackmd.io/@codimd/release-notes/%2F%40codimd%2Fv2_3_0
+
+### Enhancements
+
+- Fretboard improvements
+- Update and delete note api
+- Allow Sequelize CLI to use options set in config.json
+- Allow specifying option for graphviz
+- Spellcheck: add en_GB dictionary
+
+### Fixes
+
+- Fix ui-edit and ui-both buttons in night mode
+- Don't run jsonlint on .vscode jsonc files
+- Fix image lightbox xss issue
+- Fix mermaid xss issue
+- Check upload image mime type
+- Vega syntax XSS dependencies
+
 <i class="fa fa-tag"></i> 2.2.0 Diploderma swinhonis <i class="fa fa-clock-o"></i> 2020-07-20
 ---
 

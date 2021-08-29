@@ -27,6 +27,8 @@ import { renderFretBoard } from './lib/renderer/fretboard/fretboard'
 import './lib/renderer/lightbox'
 import { renderCSVPreview } from './lib/renderer/csvpreview'
 
+import { escapeAttrValue } from './render'
+
 import markdownit from 'markdown-it'
 import markdownitContainer from 'markdown-it-container'
 
@@ -202,18 +204,15 @@ export function parseMeta (md, edit, view, toc, tocAffix) {
     dir = meta.dir
     breaks = meta.breaks
   }
-  // text language
-  if (lang && typeof lang === 'string') {
-    view.attr('lang', lang)
-    toc.attr('lang', lang)
-    tocAffix.attr('lang', lang)
-    if (edit) { edit.attr('lang', lang) }
-  } else {
-    view.removeAttr('lang')
-    toc.removeAttr('lang')
-    tocAffix.removeAttr('lang')
-    if (edit) { edit.removeAttr('lang', lang) }
+  if (!lang || typeof lang !== 'string') {
+    lang = 'en'
   }
+  // text language
+  view.attr('lang', lang)
+  toc.attr('lang', lang)
+  tocAffix.attr('lang', lang)
+  if (edit) { edit.attr('lang', lang) }
+
   // text direction
   if (dir && typeof dir === 'string') {
     view.attr('dir', dir)
@@ -253,7 +252,29 @@ function replaceExtraTags (html) {
   return html
 }
 
-if (typeof window.mermaid !== 'undefined' && window.mermaid) window.mermaid.startOnLoad = false
+if (typeof window.mermaid !== 'undefined' && window.mermaid) {
+  window.mermaid.startOnLoad = false
+  window.mermaid.parseError = function (err, hash) {
+    console.warn(err)
+  }
+}
+
+function jsonp (url, callback) {
+  const callbackName = 'jsonp_callback_' + Math.round(1000000000 * Math.random())
+  window[callbackName] = function (data) {
+    delete window[callbackName]
+    document.body.removeChild(script)
+    callback(data)
+  }
+
+  const script = document.createElement('script')
+  script.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + callbackName
+  document.body.appendChild(script)
+  script.onerror = function (e) {
+    console.error(e)
+    script.remove()
+  }
+}
 
 // dynamic event or object binding here
 export function finishView (view) {
@@ -299,22 +320,29 @@ export function finishView (view) {
       imgPlayiframe(this, '//player.vimeo.com/video/')
     })
     .each((key, value) => {
-      $.ajax({
-        type: 'GET',
-        url: `//vimeo.com/api/v2/video/${$(value).attr('data-videoid')}.json`,
-        jsonp: 'callback',
-        dataType: 'jsonp',
-        success (data) {
-          const thumbnailSrc = data[0].thumbnail_large
-          const image = `<img src="${thumbnailSrc}" />`
-          $(value).prepend(image)
-          if (window.viewAjaxCallback) window.viewAjaxCallback()
-        }
+      jsonp(`//vimeo.com/api/v2/video/${$(value).attr('data-videoid')}.json`, function (data) {
+        const thumbnailSrc = data[0].thumbnail_large
+        const image = `<img src="${thumbnailSrc}" />`
+        $(value).prepend(image)
+        if (window.viewAjaxCallback) window.viewAjaxCallback()
       })
     })
     // gist
   view.find('code[data-gist-id]').each((key, value) => {
-    if ($(value).children().length === 0) { $(value).gist(window.viewAjaxCallback) }
+    if ($(value).children().length === 0) {
+      // strip HTML tags to avoid stored XSS
+      const gistid = value.getAttribute('data-gist-id')
+      value.setAttribute('data-gist-id', stripTags(gistid))
+      const gistfile = value.getAttribute('data-gist-file')
+      if (gistfile) value.setAttribute('data-gist-file', stripTags(gistfile))
+      const gistline = value.getAttribute('data-gist-line')
+      if (gistline) value.setAttribute('data-gist-line', stripTags(gistline))
+      const gisthighlightline = value.getAttribute('data-gist-highlight-line')
+      if (gisthighlightline) value.setAttribute('data-gist-highlight-line', stripTags(gisthighlightline))
+      const gistshowloading = value.getAttribute('data-gist-show-loading')
+      if (gistshowloading) value.setAttribute('data-gist-show-loading', stripTags(gistshowloading))
+      $(value).gist(window.viewAjaxCallback)
+    }
   })
   // sequence diagram
   const sequences = view.find('div.sequence-diagram.raw').removeClass('raw')
@@ -368,9 +396,10 @@ export function finishView (view) {
   graphvizs.each(function (key, value) {
     try {
       var $value = $(value)
+      const options = deserializeParamAttributeFromElement(value)
       var $ele = $(value).parent().parent()
       $value.unwrap()
-      viz.renderString($value.text())
+      viz.renderString($value.text(), options)
         .then(graphviz => {
           if (!graphviz) throw Error('viz.js output empty graph')
           $value.html(graphviz)
@@ -396,10 +425,14 @@ export function finishView (view) {
       var $value = $(value)
       const $ele = $(value).closest('pre')
 
-      window.mermaid.parse($value.text())
-      $ele.addClass('mermaid')
-      $ele.html($value.text())
-      window.mermaid.init(undefined, $ele)
+      const text = $value.text()
+      // validate the syntax first
+      if (window.mermaid.parse(text)) {
+        $ele.addClass('mermaid')
+        $ele.text(text)
+        // render the diagram
+        window.mermaid.init(undefined, $ele)
+      }
     } catch (err) {
       $value.unwrap()
       $value.parent().append(`<div class="alert alert-warning">${escapeHTML(err.str)}</div>`)
@@ -502,6 +535,7 @@ export function finishView (view) {
     try {
       const $ele = $(value).parent().parent()
       $ele.html(renderFretBoard($value.text(), params))
+      $ele.addClass('fretboard')
     } catch (err) {
       $value.unwrap()
       $value.parent().append(`<div class="alert alert-warning">${escapeHTML(err)}</div>`)
@@ -516,7 +550,7 @@ export function finishView (view) {
     $value.unwrap()
     try {
       const data = transform(content)
-      $elem.html(`<div class="markmap-container"><svg></svg></div>`)
+      $elem.html('<div class="markmap-container"><svg></svg></div>')
       markmap($elem.find('svg')[0], data, {
         duration: 0
       })
@@ -586,9 +620,11 @@ export function finishView (view) {
       const url = $(value).attr('data-pdfurl')
       const inner = $('<div></div>')
       $(this).append(inner)
-      PDFObject.embed(url, inner, {
-        height: '400px'
-      })
+      setTimeout(() => {
+        PDFObject.embed(url, inner, {
+          height: '400px'
+        })
+      }, 1)
     })
     // syntax highlighting
   view.find('code.raw').removeClass('raw')
@@ -780,8 +816,8 @@ export function exportToHTML (view) {
         html: src[0].outerHTML,
         'ui-toc': toc.html(),
         'ui-toc-affix': tocAffix.html(),
-        lang: (md && md.meta && md.meta.lang) ? `lang="${md.meta.lang}"` : null,
-        dir: (md && md.meta && md.meta.dir) ? `dir="${md.meta.dir}"` : null
+        lang: (md && md.meta && md.meta.lang) ? `lang="${escapeAttrValue(md.meta.lang)}"` : null,
+        dir: (md && md.meta && md.meta.dir) ? `dir="${escapeAttrValue(md.meta.dir)}"` : null
       }
       const html = template(context)
       //        console.log(html);
@@ -838,13 +874,16 @@ let tocExpand = false
 
 function checkExpandToggle () {
   const toc = $('.ui-toc-dropdown .toc')
-  const toggle = $('.expand-toggle')
+  const expand = $('.expand-toggle.expand-all')
+  const collapse = $('.expand-toggle.collapse-all')
   if (!tocExpand) {
     toc.removeClass('expand')
-    toggle.text('Expand all')
+    expand.show()
+    collapse.hide()
   } else {
     toc.addClass('expand')
-    toggle.text('Collapse all')
+    expand.hide()
+    collapse.show()
   }
 }
 
@@ -853,8 +892,12 @@ export function generateToc (id) {
   const target = $(`#${id}`)
   target.html('')
   /* eslint-disable no-unused-vars */
+
+  var tocOptions = md.meta.toc || {}
+  var maxLevel = (typeof tocOptions.maxLevel === 'number' && tocOptions.maxLevel > 0) ? tocOptions.maxLevel : window.defaultTocDepth
+
   var toc = new window.Toc('doc', {
-    level: 3,
+    level: maxLevel,
     top: -1,
     class: 'toc',
     ulClass: 'nav',
@@ -863,11 +906,12 @@ export function generateToc (id) {
   })
   /* eslint-enable no-unused-vars */
   if (target.text() === 'undefined') { target.html('') }
-  const tocMenu = $('<div class="toc-menu"></div')
-  const toggle = $('<a class="expand-toggle" href="#">Expand all</a>')
-  const backtotop = $('<a class="back-to-top" href="#">Back to top</a>')
-  const gotobottom = $('<a class="go-to-bottom" href="#">Go to bottom</a>')
   checkExpandToggle()
+  const tocMenu = $('body').children('.toc-menu')
+  target.append(tocMenu.clone().show())
+  const toggle = $('.expand-toggle', target)
+  const backtotop = $('.back-to-top', target)
+  const gotobottom = $('.go-to-bottom', target)
   toggle.click(e => {
     e.preventDefault()
     e.stopPropagation()
@@ -886,8 +930,6 @@ export function generateToc (id) {
     if (window.scrollToBottom) { window.scrollToBottom() }
     removeHash()
   })
-  tocMenu.append(toggle).append(backtotop).append(gotobottom)
-  target.append(tocMenu)
 }
 
 // smooth all hash trigger scrolling
@@ -1052,11 +1094,20 @@ export function renderTOC (view) {
     const target = $(`#${id}`)
     target.html('')
     /* eslint-disable no-unused-vars */
+
+    const specificDepth = parseInt(toc.data('toc-depth'))
+
+    var tocOptions = md.meta.toc || {}
+    var yamlMaxDepth = (typeof tocOptions.maxLevel === 'number' && tocOptions.maxLevel > 0) ? tocOptions.maxLevel : window.defaultTocDepth
+
+    var maxLevel = specificDepth || yamlMaxDepth
+
     const TOC = new window.Toc('doc', {
-      level: 3,
+      level: maxLevel,
       top: -1,
       class: 'toc',
       targetId: id,
+      data: { tocDepth: specificDepth },
       process: getHeaderContent
     })
     /* eslint-enable no-unused-vars */
@@ -1311,9 +1362,12 @@ const gistPlugin = new Plugin(
 // TOC
 const tocPlugin = new Plugin(
   // regexp to match
-  /^\[TOC\]$/i,
+  /^\[TOC(|\s*maxLevel=\d+?)\]$/i,
 
-  (match, utils) => '<div class="toc"></div>'
+  (match, utils) => {
+    const tocDepth = match[1].split(/[?&=]+/)[1]
+    return `<div class="toc" data-toc-depth="${tocDepth}"></div>`
+  }
 )
 // slideshare
 const slidesharePlugin = new Plugin(
